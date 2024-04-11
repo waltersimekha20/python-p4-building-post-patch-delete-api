@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 
-from flask import Flask, request, make_response
-from flask_sqlalchemy import SQLAlchemy
+from flask import Flask, make_response, jsonify
+from sqlalchemy import desc
 from flask_migrate import Migrate
 
-from models import db, User, Review, Game
+from models import db, Bakery, BakedGood
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///app.db'
@@ -15,72 +15,68 @@ migrate = Migrate(app, db)
 
 db.init_app(app)
 
+
 @app.route('/')
 def index():
-    return "Index for Game/Review/User API"
+    return '<h1>Bakery GET API</h1>'
 
-@app.route('/games')
-def games():
 
-    games = []
-    for game in Game.query.all():
-        game_dict = {
-            "title": game.title,
-            "genre": game.genre,
-            "platform": game.platform,
-            "price": game.price,
-        }
-        games.append(game_dict)
+@app.route('/bakeries')
+def bakeries():
+    # !can use list comprehension
+    # bakeries = [item.to_dict() for item in Bakery.query.all()]
 
-    response = make_response(
-        games,
-        200
-    )
+    bakeries = []
+
+    for bakery in Bakery.query.all():
+        bakery_dict = bakery.to_dict()
+        bakeries.append(bakery_dict)
+
+    response = make_response(jsonify(bakeries), 200)
+
+    response.headers["Content-Type"] = "application/json"
 
     return response
 
-@app.route('/games/<int:id>')
-def game_by_id(id):
-    game = Game.query.filter(Game.id == id).first()
-    
-    game_dict = game.to_dict()
 
-    response = make_response(
-        game_dict,
-        200
-    )
+@app.route('/bakeries/<int:id>')
+def bakery_by_id(id):
+    bakery = Bakery.query.filter_by(id=id).first()
 
-    return response
+    bakery_dict = bakery.to_dict()
 
-@app.route('/reviews')
-def reviews():
+    response = make_response(jsonify(bakery_dict), 200)
 
-    reviews = []
-    for review in Review.query.all():
-        review_dict = review.to_dict()
-        reviews.append(review_dict)
-
-    response = make_response(
-        reviews,
-        200
-    )
+    response.headers["Content-Type"] = "application/json"
 
     return response
 
-@app.route('/users')
-def users():
 
-    users = []
-    for user in User.query.all():
-        user_dict = user.to_dict()
-        users.append(user_dict)
+@app.route('/baked_goods/by_price')
+def baked_goods_by_price():
+    baked_goods = []
 
-    response = make_response(
-        users,
-        200
-    )
+    for baked_good in BakedGood.query.order_by(desc(BakedGood.price)).all():
+        baked_good_dict = baked_good.to_dict()
+        baked_goods.append(baked_good_dict)
+
+    response = make_response(jsonify(baked_goods), 200)
+
+    response.headers["Content-Type"] = "application/json"
 
     return response
+
+
+@app.route('/baked_goods/most_expensive')
+def most_expensive_baked_good():
+    baked_good = BakedGood.query.order_by(desc(BakedGood.price)).first()
+
+    baked_good_dict = baked_good.to_dict()
+
+    response = make_response(jsonify(baked_good_dict), 200)
+
+    return response
+
 
 if __name__ == '__main__':
     app.run(port=5555, debug=True)
